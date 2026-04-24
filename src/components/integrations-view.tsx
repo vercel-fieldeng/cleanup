@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CheckIcon, ExternalLinkIcon } from "@/components/icons";
@@ -35,6 +36,8 @@ type StoreGroup = {
 
 export function IntegrationsView() {
   const { token, team } = useToken();
+  const searchParams = useSearchParams();
+  const search = searchParams.get("q") ?? "";
   const [integrations, setIntegrations] = useState<VercelIntegration[]>([]);
   const [stores, setStores] = useState<VercelStore[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,6 +162,22 @@ export function IntegrationsView() {
     return result.sort((a, b) => a.label.localeCompare(b.label));
   }, [integrations, stores, ownerSlug]);
 
+  const filteredGroups = useMemo(() => {
+    if (!search) return groups;
+    const q = search.toLowerCase();
+    return groups
+      .map((g) => {
+        const labelMatch = g.label.toLowerCase().includes(q);
+        if (labelMatch) return g;
+        const matchedStores = g.stores.filter((s) =>
+          s.name.toLowerCase().includes(q),
+        );
+        if (matchedStores.length > 0) return { ...g, stores: matchedStores };
+        return null;
+      })
+      .filter((g): g is StoreGroup => g !== null);
+  }, [groups, search]);
+
   function toggleCollapse(key: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -171,10 +190,10 @@ export function IntegrationsView() {
   // visible (non-collapsed) store ids in render order for range selection
   const visibleStoreIds = useMemo(
     () =>
-      groups.flatMap((g) =>
+      filteredGroups.flatMap((g) =>
         collapsed.has(g.key) ? [] : g.stores.map((s) => s.id),
       ),
-    [groups, collapsed],
+    [filteredGroups, collapsed],
   );
 
   function handleStoreClick(storeId: string, e: React.MouseEvent) {
@@ -312,11 +331,13 @@ export function IntegrationsView() {
     );
   }
 
-  if (groups.length === 0) {
+  if (filteredGroups.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center">
         <span className="text-sm text-text-secondary">
-          No integrations or stores found
+          {search
+            ? "No integrations match your search"
+            : "No integrations or stores found"}
         </span>
       </div>
     );
@@ -327,13 +348,13 @@ export function IntegrationsView() {
       <div className="mb-2 flex items-center justify-between">
         <h1 className="font-semibold text-lg">Integrations</h1>
         <span className="font-mono text-text-tertiary text-xs">
-          {groups.length} group{groups.length !== 1 ? "s" : ""}
+          {filteredGroups.length} group{filteredGroups.length !== 1 ? "s" : ""}
           {" · "}
           {stores.length} store{stores.length !== 1 ? "s" : ""}
         </span>
       </div>
 
-      {groups.map((group) => {
+      {filteredGroups.map((group) => {
         const isCollapsed = collapsed.has(group.key);
         const selectedInGroup = group.stores.filter((s) => selected.has(s.id));
         const someSelected = selectedInGroup.length > 0;
@@ -504,9 +525,8 @@ function ProviderIcon({
       <span
         className="inline-flex shrink-0 rounded"
         style={{ width: size, height: size }}
-      >
-        {slug.charAt(0).toUpperCase()}
-      </span>
+        dangerouslySetInnerHTML={{ __html: inlineSvg }}
+      />
     );
   }
 

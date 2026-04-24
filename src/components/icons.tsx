@@ -239,6 +239,47 @@ export function TrashIcon({ className, size = 12 }: IconProps) {
   );
 }
 
+export function GridIcon({ className, size = 14 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2" y="2" width="5" height="5" rx="0.5" />
+      <rect x="9" y="2" width="5" height="5" rx="0.5" />
+      <rect x="2" y="9" width="5" height="5" rx="0.5" />
+      <rect x="9" y="9" width="5" height="5" rx="0.5" />
+    </svg>
+  );
+}
+
+export function PlugIcon({ className, size = 14 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M6 2v4M10 2v4M4 6h8v2a4 4 0 01-8 0V6zM8 12v2" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className, size = 14 }: IconProps) {
   return (
     <svg

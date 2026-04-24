@@ -51,13 +51,16 @@ export function TokenSettingsForm({
   }
 
   return (
-    <div className="flex flex-1 flex-col px-6 py-8">
-      <h1 className="font-semibold text-xl">{title}</h1>
-      <p className="mt-1 text-sm text-text-secondary">{description}</p>
+    <div className="flex flex-1 flex-col">
+      <div className="px-6 py-8">
+        <h1 className="font-semibold text-xl">{title}</h1>
+        <p className="mt-1 text-sm text-text-secondary">{description}</p>
+      </div>
 
-      <div className="mt-8 max-w-lg">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8">
+        <div className="w-full max-w-sm">
         {tokenPresent ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between border border-border bg-surface p-4">
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-sm">Connected</span>
@@ -70,38 +73,14 @@ export function TokenSettingsForm({
                 <span className="text-text-secondary text-xs">Active</span>
               </div>
             </div>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleClear}
-                disabled={pending}
-                className="h-8 border border-danger px-4 text-danger text-sm transition-colors hover:bg-danger/10 disabled:opacity-50"
-              >
-                Disconnect
-              </button>
-            </div>
-
-            <div className="border-border border-t pt-4">
-              <h2 className="font-medium text-sm">Replace Token</h2>
-              <form onSubmit={handleSave} className="mt-2 flex gap-2">
-                <input
-                  type="password"
-                  placeholder={placeholder}
-                  value={value}
-                  onChange={(event) => setValue(event.target.value)}
-                  className="h-8 flex-1 border border-border bg-surface px-3 font-mono text-sm outline-none transition-colors placeholder:text-text-tertiary focus:border-text-secondary"
-                />
-                <button
-                  type="submit"
-                  disabled={pending || !value.trim()}
-                  className="h-8 border border-border px-4 text-sm transition-colors hover:bg-surface-hover disabled:opacity-50"
-                >
-                  {pending ? "Saving..." : "Update"}
-                </button>
-              </form>
-              {error && <p className="mt-2 text-danger text-xs">{error}</p>}
-            </div>
+            <button
+              type="button"
+              onClick={handleClear}
+              disabled={pending}
+              className="h-10 w-full border border-danger text-danger text-sm transition-colors hover:bg-danger/10 disabled:opacity-50"
+            >
+              Disconnect
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSave} className="flex flex-col gap-3">
@@ -136,6 +115,7 @@ export function TokenSettingsForm({
             </p>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

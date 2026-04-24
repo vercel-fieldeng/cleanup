@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { TrashIcon } from "@/components/icons";
@@ -37,7 +38,8 @@ export function EnvVarsView() {
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const search = searchParams.get("q") ?? "";
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [decryptedValues, setDecryptedValues] = useState<Map<string, string>>(
@@ -227,13 +229,6 @@ export function EnvVarsView() {
 
       {/* filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter by key name..."
-          className="h-8 border border-border bg-surface px-3 font-mono text-text text-xs placeholder:text-text-tertiary focus:border-text-tertiary focus:outline-none"
-        />
         {RECOMMENDED_FILTERS.map((f) => {
           const isActive = activeFilters.has(f.label);
           return (

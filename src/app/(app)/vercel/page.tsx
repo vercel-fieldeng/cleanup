@@ -12,7 +12,7 @@ export default async function VercelSettingsPage() {
     <TokenSettingsForm
       title="Vercel Settings"
       description="Manage your Vercel Personal Access Token"
-      placeholder="vercel_pat_..."
+      placeholder="vcp_..."
       docsHref="https://vercel.com/account/tokens"
       docsLabel="vercel.com/account/tokens"
       connectedLabel={

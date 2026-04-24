@@ -1,18 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import {
-  type SyntheticEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { FilterAccordion, type FilterKey } from "@/components/filter-accordion";
-import { CheckIcon, ChevronIcon, SettingsIcon } from "@/components/icons";
 import { ProjectsTableSkeleton } from "@/components/projects-table-skeleton";
 import { useToken } from "@/components/token-provider";
 import type {
@@ -29,92 +21,6 @@ import {
 
 function teamAvatarUrl(teamId: string, size = 64) {
   return `https://vercel.com/api/www/avatar?teamId=${encodeURIComponent(teamId)}&s=${size}`;
-}
-
-function userAvatarUrl(uid: string, size = 64) {
-  return `https://vercel.com/api/www/avatar?uid=${encodeURIComponent(uid)}&s=${size}`;
-}
-
-function TeamSwitcherInline() {
-  const { user, team, setTeam, teams } = useToken();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  const isPersonal = teams.length === 0;
-  const currentLabel = isPersonal
-    ? (user?.name ?? user?.username ?? "Personal")
-    : (team?.name ?? teams[0]?.name ?? "—");
-  const currentAvatar = isPersonal
-    ? user?.id
-      ? userAvatarUrl(user.id)
-      : null
-    : team
-      ? teamAvatarUrl(team.id)
-      : null;
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-8 items-center gap-2 border border-border bg-surface px-3 text-sm transition-colors hover:bg-surface-hover"
-      >
-        {currentAvatar && (
-          <TeamAvatar src={currentAvatar} name={currentLabel} size={20} />
-        )}
-        <span className="max-w-[180px] truncate">{currentLabel}</span>
-        <ChevronIcon
-          className={`text-text-tertiary transition-transform ${open ? "rotate-90" : "-rotate-90"}`}
-        />
-      </button>
-
-      {open && teams.length > 0 && (
-        <div className="absolute top-full right-0 z-50 mt-1 min-w-[220px] border border-border bg-surface shadow-lg">
-          <div className="py-1">
-            {teams.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  setTeam(t);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-surface-hover ${
-                  team?.id === t.id ? "text-text" : "text-text-secondary"
-                }`}
-              >
-                <TeamAvatar src={teamAvatarUrl(t.id)} name={t.name} size={20} />
-                <span className="truncate">{t.name}</span>
-                {team?.id === t.id && (
-                  <CheckIcon className="ml-auto shrink-0" />
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="border-border border-t">
-            <Link
-              href="/vercel"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
-            >
-              <SettingsIcon />
-              Manage
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // -- delete confirmation modal --
@@ -200,11 +106,12 @@ function computeIntegrationCounts(
 
 export function ProjectsView() {
   const { token, team } = useToken();
+  const searchParams = useSearchParams();
+  const search = searchParams.get("q") ?? "";
   const [projects, setProjects] = useState<ProjectWithMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [envLoading, setEnvLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -484,20 +391,6 @@ export function ProjectsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* toolbar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-border border-b px-5 py-3">
-        <input
-          type="text"
-          placeholder="Search projects..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-8 w-64 border border-border bg-surface px-3 text-sm outline-none transition-colors placeholder:text-text-tertiary focus:border-text-secondary"
-        />
-        <div className="ml-auto">
-          <TeamSwitcherInline />
-        </div>
-      </div>
-
       {/* filter accordion */}
       <FilterAccordion
         open={filterOpen}
@@ -699,45 +592,6 @@ export function ProjectsView() {
 }
 
 // -- helpers --
-
-function TeamAvatar({
-  src,
-  name,
-  size,
-}: {
-  src: string;
-  name: string;
-  size: number;
-}) {
-  const [failed, setFailed] = useState(false);
-  const initial = name.charAt(0).toUpperCase();
-
-  if (failed) {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-surface-hover font-mono text-text-tertiary"
-        style={{ width: size, height: size, fontSize: size * 0.45 }}
-      >
-        {initial}
-      </span>
-    );
-  }
-
-  return (
-    <Image
-      src={src}
-      alt=""
-      width={size}
-      height={size}
-      unoptimized
-      className="shrink-0 rounded-full"
-      onError={(e: SyntheticEvent<HTMLImageElement>) => {
-        e.currentTarget.onerror = null;
-        setFailed(true);
-      }}
-    />
-  );
-}
 
 function SortHeader({
   label,

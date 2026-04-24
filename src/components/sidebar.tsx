@@ -1,30 +1,52 @@
 "use client";
 
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
-import { SettingsIcon, VercelIcon } from "@/components/icons";
+import {
+  GitBranch,
+  KeyRound,
+  LayoutGrid,
+  Plug,
+  Settings,
+} from "lucide-react";
 
-type NavItem = { key: string; label: string; href: string };
-type NavGroup = { label: string; items: NavItem[] };
+import { VercelIcon } from "@/components/icons";
+import { useToken } from "@/components/token-provider";
+
+type NavItem = {
+  key: string;
+  label: string;
+  href: string;
+  icon: ComponentType<{ size?: number }>;
+  isConfigure?: boolean;
+};
+type NavGroup = { label: string; provider: "vercel" | "github"; items: NavItem[] };
 
 const navGroups: NavGroup[] = [
   {
     label: "Vercel",
+    provider: "vercel",
     items: [
-      { key: "vercel-projects", label: "Projects", href: "/vercel/projects" },
+      { key: "configure-vercel", label: "Configure", href: "/vercel", icon: Settings, isConfigure: true },
+      { key: "vercel-projects", label: "Projects", href: "/vercel/projects", icon: LayoutGrid },
       {
         key: "vercel-integrations",
         label: "Integrations",
         href: "/vercel/integrations",
+        icon: Plug,
       },
-      { key: "vercel-env-vars", label: "Env Vars", href: "/vercel/env-vars" },
+      { key: "vercel-env-vars", label: "Env Vars", href: "/vercel/env-vars", icon: KeyRound },
     ],
   },
   {
     label: "GitHub",
+    provider: "github",
     items: [
-      { key: "github-repos", label: "Repositories", href: "/github/repos" },
+      { key: "configure-github", label: "Configure", href: "/github", icon: Settings, isConfigure: true },
+      { key: "github-repos", label: "Repositories", href: "/github/repos", icon: GitBranch },
     ],
   },
 ];
@@ -32,16 +54,40 @@ const navGroups: NavGroup[] = [
 function getActiveKey(pathname: string): string {
   if (pathname.startsWith("/vercel/integrations")) return "vercel-integrations";
   if (pathname.startsWith("/vercel/env-vars")) return "vercel-env-vars";
-  if (pathname.startsWith("/vercel/projects") || pathname.startsWith("/vercel"))
-    return "vercel-projects";
-  if (pathname.startsWith("/github/repos") || pathname.startsWith("/github"))
-    return "github-repos";
+  if (pathname.startsWith("/vercel/projects")) return "vercel-projects";
+  if (pathname === "/vercel") return "configure-vercel";
+  if (pathname.startsWith("/github/repos")) return "github-repos";
+  if (pathname === "/github") return "configure-github";
   return "";
+}
+
+function DisabledItem({ item }: { item: NavItem }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-text-tertiary cursor-not-allowed"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <item.icon size={14} />
+      {item.label}
+      {showTooltip && (
+        <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded border border-border bg-surface px-2 py-1 text-xs text-text-secondary shadow-lg">
+          Configure your token first
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Sidebar() {
   const pathname = usePathname();
   const activeKey = getActiveKey(pathname);
+  const { token, githubToken } = useToken();
+
+  const hasToken = (provider: "vercel" | "github") =>
+    provider === "vercel" ? Boolean(token) : Boolean(githubToken);
 
   return (
     <aside className="flex w-[200px] shrink-0 flex-col border-border border-r bg-bg">
@@ -61,17 +107,24 @@ export function Sidebar() {
             </span>
             <div className="mt-1 flex flex-col gap-0.5">
               {group.items.map((item) => {
+                const disabled = !item.isConfigure && !hasToken(group.provider);
+
+                if (disabled) {
+                  return <DisabledItem key={item.key} item={item} />;
+                }
+
                 const active = item.key === activeKey;
                 return (
                   <Link
                     key={item.key}
                     href={item.href}
-                    className={`rounded px-2 py-1.5 text-left text-sm transition-colors ${
+                    className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors ${
                       active
                         ? "bg-surface text-text"
                         : "text-text-secondary hover:bg-surface-hover hover:text-text"
                     }`}
                   >
+                    <item.icon size={14} />
                     {item.label}
                   </Link>
                 );
@@ -80,24 +133,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* settings links */}
-      <div className="border-border border-t p-2">
-        <Link
-          href="/vercel"
-          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
-        >
-          <VercelIcon size={12} />
-          Vercel Settings
-        </Link>
-        <Link
-          href="/github"
-          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
-        >
-          <SettingsIcon size={12} />
-          GitHub Settings
-        </Link>
-      </div>
     </aside>
   );
 }

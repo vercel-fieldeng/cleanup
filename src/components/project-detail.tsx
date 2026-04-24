@@ -769,11 +769,10 @@ function ProviderIcon({
   if (inlineSvg) {
     return (
       <span
-        className="inline-flex shrink-0 items-center justify-center rounded bg-surface-hover font-mono text-text-tertiary"
-        style={{ width: size, height: size, fontSize: size * 0.45 }}
-      >
-        {slug.charAt(0).toUpperCase()}
-      </span>
+        className="inline-flex shrink-0 rounded"
+        style={{ width: size, height: size }}
+        dangerouslySetInnerHTML={{ __html: inlineSvg }}
+      />
     );
   }
 
