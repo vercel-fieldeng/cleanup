@@ -1,19 +1,18 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
+  type SyntheticEvent,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type SyntheticEvent,
 } from "react";
 
-import {
-  FilterAccordion,
-  type FilterKey,
-} from "@/components/filter-accordion";
+import { FilterAccordion, type FilterKey } from "@/components/filter-accordion";
+import { CheckIcon, ChevronIcon, SettingsIcon } from "@/components/icons";
 import { ProjectsTableSkeleton } from "@/components/projects-table-skeleton";
 import { useToken } from "@/components/token-provider";
 import type {
@@ -74,19 +73,13 @@ function TeamSwitcherInline() {
           <TeamAvatar src={currentAvatar} name={currentLabel} size={20} />
         )}
         <span className="max-w-[180px] truncate">{currentLabel}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className={`text-text-tertiary transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="M4.5 6L8 9.5L11.5 6H4.5Z" />
-        </svg>
+        <ChevronIcon
+          className={`text-text-tertiary transition-transform ${open ? "rotate-90" : "-rotate-90"}`}
+        />
       </button>
 
       {open && teams.length > 0 && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[220px] border border-border bg-surface shadow-lg">
+        <div className="absolute top-full right-0 z-50 mt-1 min-w-[220px] border border-border bg-surface shadow-lg">
           <div className="py-1">
             {teams.map((t) => (
               <button
@@ -103,18 +96,20 @@ function TeamSwitcherInline() {
                 <TeamAvatar src={teamAvatarUrl(t.id)} name={t.name} size={20} />
                 <span className="truncate">{t.name}</span>
                 {team?.id === t.id && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="ml-auto shrink-0"
-                  >
-                    <path d="M6.5 12.5L2 8l1.4-1.4 3.1 3.1 6.1-6.1L14 5l-7.5 7.5z" />
-                  </svg>
+                  <CheckIcon className="ml-auto shrink-0" />
                 )}
               </button>
             ))}
+          </div>
+          <div className="border-border border-t">
+            <Link
+              href="/vercel"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
+            >
+              <SettingsIcon />
+              Manage
+            </Link>
           </div>
         </div>
       )}
@@ -138,12 +133,12 @@ function DeleteModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="w-full max-w-sm border border-border bg-surface p-6">
-        <h2 className="text-base font-semibold">
+        <h2 className="font-semibold text-base">
           Delete {count} project{count !== 1 ? "s" : ""}?
         </h2>
-        <p className="mt-2 text-text-secondary text-sm">
-          This permanently deletes the selected project{count !== 1 ? "s" : ""}, all
-          deployments, and environment variables. This cannot be undone.
+        <p className="mt-2 text-sm text-text-secondary">
+          This permanently deletes the selected project{count !== 1 ? "s" : ""},
+          all deployments, and environment variables. This cannot be undone.
         </p>
         <div className="mt-6 flex justify-end gap-2">
           <button
@@ -158,7 +153,7 @@ function DeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={deleting}
-            className="h-8 bg-danger px-4 text-sm font-medium text-white transition-colors hover:bg-danger-hover disabled:opacity-50"
+            className="h-8 bg-danger px-4 font-medium text-sm text-white transition-colors hover:bg-danger-hover disabled:opacity-50"
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
@@ -170,7 +165,13 @@ function DeleteModal({
 
 // -- main view --
 
-type SortKey = "name" | "framework" | "created" | "deployments" | "envVars" | "integrations";
+type SortKey =
+  | "name"
+  | "framework"
+  | "created"
+  | "deployments"
+  | "envVars"
+  | "integrations";
 type SortDir = "asc" | "desc";
 
 function computeIntegrationCounts(
@@ -222,6 +223,67 @@ export function ProjectsView() {
     [token, team],
   );
 
+  const loadEnvCounts = useCallback(
+    async (
+      items: ProjectWithMeta[],
+      fetchOpts: { token: string; teamId?: string },
+    ): Promise<ProjectWithMeta[]> => {
+      const cacheKey = `env-counts-${fetchOpts.teamId ?? "personal"}`;
+      let cached: Record<string, number> = {};
+      try {
+        const raw = sessionStorage.getItem(cacheKey);
+        if (raw) cached = JSON.parse(raw) as Record<string, number>;
+      } catch {
+        /* ignore */
+      }
+
+      const result = [...items];
+
+      // apply cached counts first
+      for (let i = 0; i < result.length; i++) {
+        if (result[i].id in cached) {
+          result[i] = { ...result[i], envVarCount: cached[result[i].id] };
+        }
+      }
+
+      // only fetch uncached projects
+      const uncached = result.filter((p) => p.envVarCount === null);
+      if (uncached.length === 0) return result;
+
+      const batchSize = 10;
+      for (let i = 0; i < uncached.length; i += batchSize) {
+        const batch = uncached.slice(i, i + batchSize);
+        const counts = await Promise.all(
+          batch.map(async (p) => {
+            try {
+              const data = await fetchEnvVars(p.id, fetchOpts);
+              return { id: p.id, count: data.envs?.length ?? 0 };
+            } catch {
+              return { id: p.id, count: 0 };
+            }
+          }),
+        );
+
+        for (const { id, count } of counts) {
+          cached[id] = count;
+          const idx = result.findIndex((p) => p.id === id);
+          if (idx !== -1) {
+            result[idx] = { ...result[idx], envVarCount: count };
+          }
+        }
+      }
+
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(cached));
+      } catch {
+        /* storage full, ignore */
+      }
+
+      return result;
+    },
+    [],
+  );
+
   // fetch projects + integrations when team changes
   useEffect(() => {
     if (!opts) return;
@@ -255,64 +317,12 @@ export function ProjectsView() {
         });
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load projects");
+        setError(
+          err instanceof Error ? err.message : "Failed to load projects",
+        );
         setLoading(false);
       });
-  }, [opts]);
-
-  async function loadEnvCounts(
-    items: ProjectWithMeta[],
-    fetchOpts: { token: string; teamId?: string },
-  ): Promise<ProjectWithMeta[]> {
-    const cacheKey = `env-counts-${fetchOpts.teamId ?? "personal"}`;
-    let cached: Record<string, number> = {};
-    try {
-      const raw = sessionStorage.getItem(cacheKey);
-      if (raw) cached = JSON.parse(raw) as Record<string, number>;
-    } catch { /* ignore */ }
-
-    const result = [...items];
-
-    // apply cached counts first
-    for (let i = 0; i < result.length; i++) {
-      if (result[i].id in cached) {
-        result[i] = { ...result[i], envVarCount: cached[result[i].id] };
-      }
-    }
-
-    // only fetch uncached projects
-    const uncached = result.filter((p) => p.envVarCount === null);
-    if (uncached.length === 0) return result;
-
-    const batchSize = 10;
-    for (let i = 0; i < uncached.length; i += batchSize) {
-      const batch = uncached.slice(i, i + batchSize);
-      const counts = await Promise.all(
-        batch.map(async (p) => {
-          try {
-            const data = await fetchEnvVars(p.id, fetchOpts);
-            return { id: p.id, count: data.envs?.length ?? 0 };
-          } catch {
-            return { id: p.id, count: 0 };
-          }
-        }),
-      );
-
-      for (const { id, count } of counts) {
-        cached[id] = count;
-        const idx = result.findIndex((p) => p.id === id);
-        if (idx !== -1) {
-          result[idx] = { ...result[idx], envVarCount: count };
-        }
-      }
-    }
-
-    try {
-      sessionStorage.setItem(cacheKey, JSON.stringify(cached));
-    } catch { /* storage full, ignore */ }
-
-    return result;
-  }
+  }, [opts, loadEnvCounts]);
 
   // filter counts (per-chip)
   const filterCounts = useMemo(
@@ -329,16 +339,23 @@ export function ProjectsView() {
   const applyFilters = useCallback(
     (list: ProjectWithMeta[]) => {
       let result = list;
-      if (filters.zeroDeploys) result = result.filter((p) => !p.latestDeployments?.length);
-      if (filters.zeroEnvVars) result = result.filter((p) => p.envVarCount === 0);
-      if (filters.zeroIntegrations) result = result.filter((p) => p.integrationCount === 0);
-      if (filters.v0Prefix) result = result.filter((p) => p.name.startsWith("v0-"));
+      if (filters.zeroDeploys)
+        result = result.filter((p) => !p.latestDeployments?.length);
+      if (filters.zeroEnvVars)
+        result = result.filter((p) => p.envVarCount === 0);
+      if (filters.zeroIntegrations)
+        result = result.filter((p) => p.integrationCount === 0);
+      if (filters.v0Prefix)
+        result = result.filter((p) => p.name.startsWith("v0-"));
       return result;
     },
     [filters],
   );
 
-  const matchCount = useMemo(() => applyFilters(projects).length, [applyFilters, projects]);
+  const matchCount = useMemo(
+    () => applyFilters(projects).length,
+    [applyFilters, projects],
+  );
 
   // sorting + filtering
   const filtered = useMemo(() => {
@@ -434,7 +451,10 @@ export function ProjectsView() {
         deleted.push(ids[i]);
       } else {
         const err = (results[i] as PromiseRejectedResult).reason;
-        failed.push({ id: ids[i], reason: err instanceof Error ? err.message : "Unknown error" });
+        failed.push({
+          id: ids[i],
+          reason: err instanceof Error ? err.message : "Unknown error",
+        });
       }
     }
 
@@ -453,7 +473,9 @@ export function ProjectsView() {
         const p = projects.find((proj) => proj.id === f.id);
         return p ? p.name : f.id;
       });
-      setError(`Deleted ${deleted.length}, ${failed.length} failed: ${names.join(", ")}`);
+      setError(
+        `Deleted ${deleted.length}, ${failed.length} failed: ${names.join(", ")}`,
+      );
     }
 
     setShowDelete(false);
@@ -463,7 +485,7 @@ export function ProjectsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* toolbar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border px-5 py-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-border border-b px-5 py-3">
         <input
           type="text"
           placeholder="Search projects..."
@@ -490,7 +512,7 @@ export function ProjectsView() {
 
       {/* error */}
       {error && (
-        <div className="border-b border-danger/30 bg-danger/10 px-5 py-2 text-danger text-sm">
+        <div className="border-danger/30 border-b bg-danger/10 px-5 py-2 text-danger text-sm">
           {error}
           <button
             type="button"
@@ -508,14 +530,14 @@ export function ProjectsView() {
           <ProjectsTableSkeleton />
         ) : filtered.length === 0 ? (
           <div className="flex h-64 items-center justify-center">
-            <span className="text-text-secondary text-sm">
+            <span className="text-sm text-text-secondary">
               {search ? "No projects match your search" : "No projects found"}
             </span>
           </div>
         ) : (
           <table className="w-full">
             <thead className="sticky top-0 z-10 bg-bg">
-              <tr className="border-b border-border text-left text-text-secondary text-xs">
+              <tr className="border-border border-b text-left text-text-secondary text-xs">
                 <th className="w-10 px-5 py-2.5">
                   <input
                     type="checkbox"
@@ -578,7 +600,7 @@ export function ProjectsView() {
               {filtered.map((p) => (
                 <tr
                   key={p.id}
-                  className="group border-b border-border transition-colors hover:bg-surface-hover"
+                  className="group border-border border-b transition-colors hover:bg-surface-hover"
                 >
                   <td className="px-5 py-2.5">
                     <input
@@ -590,7 +612,7 @@ export function ProjectsView() {
                   </td>
                   <td className="px-4 py-2.5">
                     <Link
-                      href={`/projects/${p.id}`}
+                      href={`/vercel/projects/${p.id}`}
                       className="font-medium text-sm hover:underline"
                     >
                       {p.name}
@@ -642,10 +664,8 @@ export function ProjectsView() {
 
       {/* bulk action bar */}
       {selected.size > 0 && (
-        <div className="flex shrink-0 items-center justify-between border-t border-border bg-surface px-5 py-3">
-          <span className="font-mono text-sm">
-            {selected.size} selected
-          </span>
+        <div className="flex shrink-0 items-center justify-between border-border border-t bg-surface px-5 py-3">
+          <span className="font-mono text-sm">{selected.size} selected</span>
           <div className="flex gap-2">
             <button
               type="button"
@@ -657,7 +677,7 @@ export function ProjectsView() {
             <button
               type="button"
               onClick={() => setShowDelete(true)}
-              className="h-8 bg-danger px-4 text-sm font-medium text-white transition-colors hover:bg-danger-hover"
+              className="h-8 bg-danger px-4 font-medium text-sm text-white transition-colors hover:bg-danger-hover"
             >
               Delete Selected
             </button>
@@ -680,7 +700,15 @@ export function ProjectsView() {
 
 // -- helpers --
 
-function TeamAvatar({ src, name, size }: { src: string; name: string; size: number }) {
+function TeamAvatar({
+  src,
+  name,
+  size,
+}: {
+  src: string;
+  name: string;
+  size: number;
+}) {
   const [failed, setFailed] = useState(false);
   const initial = name.charAt(0).toUpperCase();
 
@@ -696,11 +724,12 @@ function TeamAvatar({ src, name, size }: { src: string; name: string; size: numb
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt=""
       width={size}
       height={size}
+      unoptimized
       className="shrink-0 rounded-full"
       onError={(e: SyntheticEvent<HTMLImageElement>) => {
         e.currentTarget.onerror = null;
@@ -734,7 +763,9 @@ function SortHeader({
         className={`flex items-center gap-1 transition-colors hover:text-text ${active ? "text-text" : ""}`}
       >
         {label}
-        {active && <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>}
+        {active && (
+          <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>
+        )}
       </button>
     </th>
   );

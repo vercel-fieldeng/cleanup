@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ExternalLinkIcon, VercelIcon } from "@/components/icons";
 import { useToken } from "@/components/token-provider";
 
 export function TokenInput() {
@@ -35,11 +36,9 @@ export function TokenInput() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <div className="flex flex-col items-center gap-3">
-        <svg height="24" viewBox="0 0 76 65" fill="white" aria-label="Vercel">
-          <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
-        </svg>
-        <h1 className="text-lg font-semibold">Cleanup</h1>
-        <p className="text-text-secondary text-sm">
+        <VercelIcon size={24} />
+        <h1 className="font-semibold text-lg">Cleanup</h1>
+        <p className="text-sm text-text-secondary">
           Enter your Vercel Personal Access Token to get started
         </p>
       </div>
@@ -58,7 +57,7 @@ export function TokenInput() {
         {error && <p className="text-danger text-xs">{error}</p>}
         <button
           type="submit"
-          className="h-10 bg-white text-sm font-medium text-black transition-opacity hover:opacity-90"
+          className="h-10 bg-white font-medium text-black text-sm transition-opacity hover:opacity-90"
         >
           Connect
         </button>
@@ -73,6 +72,7 @@ export function TokenInput() {
           className="text-text-secondary underline"
         >
           vercel.com/account/tokens
+          <ExternalLinkIcon className="inline-block align-[-1px]" size={10} />
         </a>{" "}
         with full access scope.
       </p>

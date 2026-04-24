@@ -1,6 +1,12 @@
 "use client";
 
-export type FilterKey = "zeroDeploys" | "zeroEnvVars" | "zeroIntegrations" | "v0Prefix";
+import { ChevronIcon } from "@/components/icons";
+
+export type FilterKey =
+  | "zeroDeploys"
+  | "zeroEnvVars"
+  | "zeroIntegrations"
+  | "v0Prefix";
 
 type FilterAccordionProps = {
   open: boolean;
@@ -34,30 +40,26 @@ export function FilterAccordion({
   const anyActive = activeCount > 0;
 
   return (
-    <div className="shrink-0 border-b border-border">
+    <div className="shrink-0 border-border border-b">
       <button
         type="button"
         onClick={onToggle}
         className="flex h-9 w-full items-center gap-2 px-5 text-xs transition-colors hover:bg-surface-hover"
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 16 16"
-          fill="currentColor"
+        <ChevronIcon
           className={`text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}
-        >
-          <path d="M6 3l5 5-5 5V3z" />
-        </svg>
+        />
         <span className="text-text-secondary">Recommended Filters</span>
         {activeCount > 0 && (
-          <span className="border border-warning/40 bg-warning/10 px-1.5 py-px font-mono text-warning text-[10px]">
+          <span className="border border-warning/40 bg-warning/10 px-1.5 py-px font-mono text-[10px] text-warning">
             {activeCount}
           </span>
         )}
         <span className="ml-auto flex items-center gap-3">
           {envLoading && (
-            <span className="text-text-tertiary text-[10px]">loading env data...</span>
+            <span className="text-[10px] text-text-tertiary">
+              loading env data...
+            </span>
           )}
           <span className="font-mono text-text-secondary text-xs">
             {totalCount} project{totalCount !== 1 ? "s" : ""}
@@ -76,7 +78,7 @@ export function FilterAccordion({
                 key={key}
                 type="button"
                 onClick={() => onFilterToggle(key)}
-                className={`h-7 border px-2.5 text-xs font-medium transition-colors ${
+                className={`h-7 border px-2.5 font-medium text-xs transition-colors ${
                   active
                     ? "border-warning bg-warning/10 text-warning"
                     : "border-border text-text-secondary hover:text-text"
