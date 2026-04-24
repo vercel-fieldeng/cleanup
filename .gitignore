@@ -1,0 +1,43 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ide
+.claude
+.idea
+.vscode
+
+# local env files
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+
+# next.js
+.next
+dist
+out
+
+# production
+build
+
+# testing
+coverage
+
+# turbo
+.turbo
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# vercel
+.vercel
