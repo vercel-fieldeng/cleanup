@@ -10,7 +10,7 @@ export function ProjectDetailSkeleton() {
   return (
     <div className="px-6 py-8">
       {/* breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-text-secondary text-sm">
+      <div className="mb-6 flex items-center gap-2 text-sm text-text-secondary">
         <SkeletonBar className="h-4 w-14" />
         <span className="text-text-tertiary">/</span>
         <SkeletonBar className="h-4 w-28" />
@@ -34,16 +34,19 @@ export function ProjectDetailSkeleton() {
         <Section title="Recent Deployments" count={0}>
           <div className="flex flex-col divide-y divide-border">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex flex-col gap-1 py-2.5">
+              <div
+                key={`deployment-skeleton-${i + 1}`}
+                className="flex flex-col gap-1 py-2.5"
+              >
                 <div className="flex items-center gap-2">
-                  <SkeletonBar className="h-2 w-2 !rounded-full" />
+                  <SkeletonBar className="!rounded-full h-2 w-2" />
                   <SkeletonBar className="h-3.5 w-52" />
                 </div>
                 <div className="flex items-center gap-x-5 pl-4">
                   <SkeletonBar className="h-3 w-[120px]" />
                   <SkeletonBar className="h-3 w-[120px]" />
                   <SkeletonBar className="h-3 w-[180px]" />
-                  <SkeletonBar className="ml-auto h-[18px] w-[18px] !rounded-full" />
+                  <SkeletonBar className="!rounded-full ml-auto h-[18px] w-[18px]" />
                 </div>
               </div>
             ))}
@@ -55,7 +58,7 @@ export function ProjectDetailSkeleton() {
           <div className="flex flex-col divide-y divide-border">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
-                key={i}
+                key={`env-skeleton-${i + 1}`}
                 className="flex items-start justify-between gap-4 py-2.5"
               >
                 <div className="flex flex-col gap-1">
@@ -73,7 +76,7 @@ export function ProjectDetailSkeleton() {
           <div className="flex flex-col divide-y divide-border">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
-                key={i}
+                key={`storage-skeleton-${i + 1}`}
                 className="flex items-center justify-between py-2.5"
               >
                 <SkeletonBar className="h-3.5 w-32" />
@@ -87,7 +90,10 @@ export function ProjectDetailSkeleton() {
         <Section title="Git Editors" count={0}>
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="border border-border px-3 py-1.5">
+              <div
+                key={`editor-skeleton-${i + 1}`}
+                className="border border-border px-3 py-1.5"
+              >
                 <SkeletonBar className="h-3.5 w-20" />
               </div>
             ))}
