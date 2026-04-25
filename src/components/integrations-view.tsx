@@ -523,7 +523,7 @@ function ProviderIcon({
   if (inlineSvg) {
     return (
       <span
-        className="inline-flex shrink-0 rounded"
+        className="inline-flex shrink-0 overflow-hidden rounded-md"
         style={{ width: size, height: size }}
         dangerouslySetInnerHTML={{ __html: inlineSvg }}
       />
