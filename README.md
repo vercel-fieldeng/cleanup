@@ -1,4 +1,4 @@
-# Next.js Starter
+# Cleanup
 
 ## Getting Started
 
