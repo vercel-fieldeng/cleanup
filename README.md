@@ -1,18 +1,42 @@
-# Next.js Starter
+# Cleanup
+
+A web dashboard for bulk managing and cleaning up **Vercel projects** and **GitHub repositories**. Authenticate with Personal Access Tokens and get a unified interface to inspect, filter, and perform bulk operations on your resources.
+
+## Features
+
+### Vercel
+
+- **Projects** — Browse all projects across teams, filter, select multiple, and bulk delete (including deployments and env vars)
+- **Integrations & Stores** — View installed integrations and Vercel-native stores (Blob, Edge Config); delete stores
+- **Environment Variables** — Scan env vars across all projects with recommended filters; decrypt and delete env vars; revoke compromised OpenAI API keys
+- **Team Switching** — Switch between Vercel teams
+
+### GitHub
+
+- **Repositories** — Browse org/user repos, filter, and bulk archive or delete repositories
+- **Repo Details** — View commits, contributors, and README for individual repos
+- **Org Switching** — Switch between GitHub organizations
+
+## Tech Stack
+
+- **Next.js 16** (App Router, Server Components, Server Actions)
+- **React 19** + **TypeScript**
+- **Tailwind CSS v4**
+- **Biome** for linting
+- **Vitest** for testing
 
 ## Getting Started
 
-### Development mode
+### Development
+
 ```bash
 pnpm install
 pnpm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-### Production mode
+### Production
 
 ```bash
 pnpm install
@@ -20,14 +44,10 @@ pnpm run build
 pnpm run start
 ```
 
-Your app should be up and running on [http://localhost:3000](http://localhost:3000)!
+### Other Scripts
 
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) — learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) — an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) — your feedback and contributions are welcome!
+```bash
+pnpm test       # Run tests
+pnpm lint       # Lint with Biome
+pnpm lint:fix   # Lint and auto-fix
+```
