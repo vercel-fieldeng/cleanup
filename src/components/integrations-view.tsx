@@ -5,11 +5,19 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CheckIcon, ExternalLinkIcon } from "@/components/icons";
+import {
+  Check as CheckIcon,
+  ChevronRight as ChevronIcon,
+  ExternalLink as ExternalLinkIcon,
+} from "lucide-react";
 import { useToken } from "@/components/token-provider";
 import { PROVIDER_LOGOS } from "@/lib/provider-logos";
 import type { VercelIntegration, VercelStore } from "@/lib/types";
-import { deleteStore, fetchIntegrations, fetchStores } from "@/lib/vercel-api";
+import {
+  deleteEdgeConfig,
+  fetchIntegrations,
+  fetchStores,
+} from "@/lib/vercel-api";
 
 // maps store types to the integration slugs they belong to
 const STORE_TYPE_TO_SLUGS: Record<string, string[]> = {
@@ -197,6 +205,9 @@ export function IntegrationsView() {
   );
 
   function handleStoreClick(storeId: string, e: React.MouseEvent) {
+    const store = stores.find((s) => s.id === storeId);
+    if (store?.type !== "edge-config") return;
+
     const isRangeSelect = e.shiftKey || e.altKey;
 
     if (isRangeSelect) {
@@ -233,7 +244,7 @@ export function IntegrationsView() {
     const count = storeIds.length;
     if (
       !window.confirm(
-        `Delete ${count} store${count !== 1 ? "s" : ""}? This cannot be undone.`,
+        `Delete ${count} edge config${count !== 1 ? "s" : ""}? This cannot be undone.`,
       )
     )
       return;
@@ -244,13 +255,7 @@ export function IntegrationsView() {
     });
 
     const results = await Promise.allSettled(
-      storeIds.map((id) => {
-        const store = stores.find((item) => item.id === id);
-        if (!store) {
-          throw new Error("Store not found");
-        }
-        return deleteStore(store, opts);
-      }),
+      storeIds.map((id) => deleteEdgeConfig(id, opts)),
     );
 
     const deleted: string[] = [];
@@ -278,7 +283,7 @@ export function IntegrationsView() {
 
     if (failed.length > 0) {
       alert(
-        `Failed to delete ${failed.length} store${failed.length !== 1 ? "s" : ""}`,
+        `Failed to delete ${failed.length} edge config${failed.length !== 1 ? "s" : ""}`,
       );
     }
   }
@@ -384,37 +389,34 @@ export function IntegrationsView() {
               </div>
               <div className="flex items-center gap-3">
                 {someSelected && (
-                  <span className="border border-danger px-3 py-1 text-danger text-xs">
-                    {selectedInGroup.length} selected
-                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSelected(
+                        selectedInGroup.map((store) => store.id),
+                      );
+                    }}
+                    className="border border-danger px-3 py-1 text-danger text-xs transition-colors hover:bg-danger/10"
+                  >
+                    Delete {selectedInGroup.length} selected store
+                    {selectedInGroup.length !== 1 ? "s" : ""}
+                  </button>
                 )}
                 {group.manageUrl && (
                   <span className="inline-flex items-center gap-1 text-text-secondary text-xs">
                     Manage in Vercel
                   </span>
                 )}
-                <ChevronIcon expanded={!isCollapsed} />
+                <ChevronIcon
+                  size={12}
+                  className={`shrink-0 text-text-tertiary transition-transform ${!isCollapsed ? "rotate-90" : ""}`}
+                />
               </div>
             </button>
 
             {!isCollapsed && group.stores.length > 0 && (
               <>
-                {someSelected && (
-                  <div className="border-border border-t bg-surface px-4 py-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDeleteSelected(
-                          selectedInGroup.map((store) => store.id),
-                        )
-                      }
-                      className="border border-danger px-3 py-1 text-danger text-xs transition-colors hover:bg-danger/10"
-                    >
-                      Delete {selectedInGroup.length} selected store
-                      {selectedInGroup.length !== 1 ? "s" : ""}
-                    </button>
-                  </div>
-                )}
                 <div className="divide-y divide-border border-border border-t">
                   {group.stores.map((store) => (
                     <StoreRow
@@ -455,11 +457,13 @@ function StoreRow({
       }}
       onClick={onClick}
     >
-      <span
-        className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors ${isSelected ? "border-text bg-text" : "border-text-tertiary bg-transparent"}`}
-      >
-        {isSelected && <CheckIcon className="text-bg" size={10} />}
-      </span>
+      {store.type === "edge-config" && (
+        <span
+          className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors ${isSelected ? "border-text bg-text" : "border-text-tertiary bg-transparent"}`}
+        >
+          {isSelected && <CheckIcon className="text-bg" size={10} />}
+        </span>
+      )}
       <span className="shrink-0 font-mono text-text text-xs">{store.name}</span>
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
         {store.projectsMetadata.map((p) => (
@@ -480,17 +484,6 @@ function ProjectChip({ id, name }: { id: string; name: string }) {
       {name}
       <ExternalLinkIcon size={8} />
     </Link>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`shrink-0 text-text-tertiary transition-transform ${expanded ? "rotate-90" : ""}`}
-    >
-      ›
-    </span>
   );
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { TrashIcon } from "@/components/icons";
+import { Trash2 as TrashIcon } from "lucide-react";
 import { useToken } from "@/components/token-provider";
 import type { VercelEnvVar, VercelProject } from "@/lib/types";
 import {

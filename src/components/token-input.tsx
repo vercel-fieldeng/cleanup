@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { ExternalLinkIcon, VercelIcon } from "@/components/icons";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { useToken } from "@/components/token-provider";
 
 export function TokenInput() {
@@ -36,7 +36,7 @@ export function TokenInput() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <div className="flex flex-col items-center gap-3">
-        <VercelIcon size={24} />
+        <svg width={24} height={24} viewBox="0 0 76 65" fill="currentColor" aria-hidden="true"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z" /></svg>
         <h1 className="font-semibold text-lg">Cleanup</h1>
         <p className="text-sm text-text-secondary">
           Enter your Vercel Personal Access Token to get started

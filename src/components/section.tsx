@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { ExternalLinkIcon } from "@/components/icons";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 
 export function Section({
   title,
@@ -24,7 +24,7 @@ export function Section({
             className="inline-flex items-center gap-1.5 font-medium text-sm transition-colors hover:text-text-secondary"
           >
             {title}
-            <ExternalLinkIcon />
+            <ExternalLinkIcon size={12} />
           </a>
         ) : (
           <h2 className="font-medium text-sm">{title}</h2>

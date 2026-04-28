@@ -1,12 +1,20 @@
 "use client";
 
-import { ChevronIcon } from "@/components/icons";
+import { useState } from "react";
+
+import {
+  Check as CheckIcon,
+  ChevronRight as ChevronIcon,
+  LayoutGrid as GridIcon,
+} from "lucide-react";
 
 export type FilterKey =
   | "zeroDeploys"
   | "zeroEnvVars"
   | "zeroIntegrations"
   | "v0Prefix";
+
+export type GroupByKey = "year" | "creator" | "recentUser";
 
 type FilterAccordionProps = {
   open: boolean;
@@ -17,6 +25,8 @@ type FilterAccordionProps = {
   matchCount: number;
   totalCount: number;
   envLoading: boolean;
+  groupBy: GroupByKey | null;
+  onGroupByChange: (key: GroupByKey | null) => void;
 };
 
 const chips: { key: FilterKey; label: string }[] = [
@@ -24,6 +34,13 @@ const chips: { key: FilterKey; label: string }[] = [
   { key: "zeroDeploys", label: "No Deploys" },
   { key: "zeroEnvVars", label: "No Environment Variables" },
   { key: "zeroIntegrations", label: "No Integrations" },
+];
+
+const groupByOptions: { key: GroupByKey | null; label: string }[] = [
+  { key: null, label: "None" },
+  { key: "year", label: "Year" },
+  { key: "creator", label: "Creator" },
+  { key: "recentUser", label: "Most Recent User" },
 ];
 
 export function FilterAccordion({
@@ -35,18 +52,21 @@ export function FilterAccordion({
   matchCount,
   totalCount,
   envLoading,
+  groupBy,
+  onGroupByChange,
 }: FilterAccordionProps) {
   const activeCount = Object.values(filters).filter(Boolean).length;
   const anyActive = activeCount > 0;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <div className="shrink-0 border-border border-b">
-      <button
-        type="button"
+      <div
         onClick={onToggle}
-        className="flex h-9 w-full items-center gap-2 px-5 text-xs transition-colors hover:bg-surface-hover"
+        className="flex h-9 w-full cursor-pointer items-center gap-2 px-5 text-xs transition-colors hover:bg-surface-hover"
       >
         <ChevronIcon
+          size={12}
           className={`text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}
         />
         <span className="text-text-secondary">Recommended Filters</span>
@@ -61,11 +81,64 @@ export function FilterAccordion({
               loading env data...
             </span>
           )}
+          <span className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDropdownOpen((v) => !v);
+              }}
+              className={`flex items-center gap-1.5 rounded px-1.5 py-1 transition-colors hover:bg-surface-active ${
+                groupBy ? "text-text" : "text-text-tertiary"
+              }`}
+            >
+              <GridIcon size={12} />
+              {groupBy && (
+                <span className="text-[10px]">
+                  {groupByOptions.find((o) => o.key === groupBy)?.label}
+                </span>
+              )}
+            </button>
+            {dropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDropdownOpen(false);
+                  }}
+                />
+                <div className="absolute right-0 top-full z-30 mt-1 w-44 border border-border bg-surface py-1 shadow-lg">
+                  {groupByOptions.map(({ key, label }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGroupByChange(key);
+                        setDropdownOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-hover ${
+                        groupBy === key ? "text-text" : "text-text-secondary"
+                      }`}
+                    >
+                      <span className="w-3">
+                        {groupBy === key && <CheckIcon size={10} />}
+                      </span>
+                      <span className={groupBy === key ? "font-medium" : ""}>
+                        {label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </span>
           <span className="font-mono text-text-secondary text-xs">
             {totalCount} project{totalCount !== 1 ? "s" : ""}
           </span>
         </span>
-      </button>
+      </div>
 
       <div
         className={`overflow-hidden transition-[max-height] duration-200 ${open ? "max-h-24" : "max-h-0"}`}

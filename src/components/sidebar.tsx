@@ -13,7 +13,6 @@ import {
   Settings,
 } from "lucide-react";
 
-import { VercelIcon } from "@/components/icons";
 import { useToken } from "@/components/token-provider";
 
 type NavItem = {
@@ -30,7 +29,6 @@ const navGroups: NavGroup[] = [
     label: "Vercel",
     provider: "vercel",
     items: [
-      { key: "configure-vercel", label: "Configure", href: "/vercel", icon: Settings, isConfigure: true },
       { key: "vercel-projects", label: "Projects", href: "/vercel/projects", icon: LayoutGrid },
       {
         key: "vercel-integrations",
@@ -39,14 +37,15 @@ const navGroups: NavGroup[] = [
         icon: Plug,
       },
       { key: "vercel-env-vars", label: "Env Vars", href: "/vercel/env-vars", icon: KeyRound },
+      { key: "configure-vercel", label: "Configure", href: "/vercel", icon: Settings, isConfigure: true },
     ],
   },
   {
     label: "GitHub",
     provider: "github",
     items: [
-      { key: "configure-github", label: "Configure", href: "/github", icon: Settings, isConfigure: true },
       { key: "github-repos", label: "Repositories", href: "/github/repos", icon: GitBranch },
+      { key: "configure-github", label: "Configure", href: "/github", icon: Settings, isConfigure: true },
     ],
   },
 ];
@@ -93,7 +92,7 @@ export function Sidebar() {
     <aside className="flex w-[200px] shrink-0 flex-col border-border border-r bg-bg">
       {/* brand */}
       <Link href="/" className="flex h-12 items-center gap-2.5 px-4">
-        <VercelIcon size={14} />
+        <svg width={14} height={14} viewBox="0 0 76 65" fill="currentColor" aria-hidden="true"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z" /></svg>
         <span className="text-sm text-text-tertiary">/</span>
         <span className="font-medium text-sm">Cleanup</span>
       </Link>

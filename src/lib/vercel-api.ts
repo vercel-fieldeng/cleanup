@@ -147,31 +147,8 @@ export async function deleteIntegrationConfig(
   });
 }
 
-export async function deleteStore(
-  store: { id: string; type: string },
-  opts: FetchOptions,
-) {
-  if (store.type === "edge-config") {
-    await vercelFetch(`/v1/edge-config/${store.id}`, opts, {
-      method: "DELETE",
-    });
-    return;
-  }
-
-  await vercelFetch(`/v1/storage/stores/${store.id}/connections`, opts, {
-    method: "DELETE",
-  });
-
-  if (store.type === "blob") {
-    await vercelFetch(`/v1/storage/stores/blob/${store.id}`, opts, {
-      method: "DELETE",
-    });
-    return;
-  }
-
-  await vercelFetch(`/v1/storage/stores/${store.id}`, opts, {
-    method: "DELETE",
-  });
+export async function deleteEdgeConfig(storeId: string, opts: FetchOptions) {
+  await vercelFetch(`/v1/edge-config/${storeId}`, opts, { method: "DELETE" });
 }
 
 export async function deleteEnvVar(

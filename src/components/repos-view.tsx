@@ -11,7 +11,11 @@ import {
   useState,
 } from "react";
 
-import { CheckIcon, ChevronIcon, SettingsIcon } from "@/components/icons";
+import {
+  Check as CheckIcon,
+  ChevronRight as ChevronIcon,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { useToken } from "@/components/token-provider";
 import {
   archiveRepo,
@@ -97,6 +101,7 @@ function OrgSwitcherInline() {
         )}
         <span className="max-w-[180px] truncate">{currentLabel}</span>
         <ChevronIcon
+          size={12}
           className={`text-text-tertiary transition-transform ${open ? "rotate-90" : "-rotate-90"}`}
         />
       </button>
@@ -122,7 +127,7 @@ function OrgSwitcherInline() {
                   size={20}
                 />
                 <span className="truncate">{githubUser.login}</span>
-                {isPersonal && <CheckIcon className="ml-auto shrink-0" />}
+                {isPersonal && <CheckIcon size={14} className="ml-auto shrink-0" />}
               </button>
             )}
             {/* orgs */}
@@ -141,7 +146,7 @@ function OrgSwitcherInline() {
                 <OrgAvatar src={org.avatar_url} name={org.login} size={20} />
                 <span className="truncate">{org.login}</span>
                 {githubOrg?.id === org.id && (
-                  <CheckIcon className="ml-auto shrink-0" />
+                  <CheckIcon size={14} className="ml-auto shrink-0" />
                 )}
               </button>
             ))}
@@ -153,7 +158,7 @@ function OrgSwitcherInline() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
             >
-              <SettingsIcon />
+              <SettingsIcon size={14} />
               Manage
             </Link>
           </div>

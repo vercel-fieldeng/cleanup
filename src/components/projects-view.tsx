@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { FilterAccordion, type FilterKey } from "@/components/filter-accordion";
+import {
+  FilterAccordion,
+  type FilterKey,
+  type GroupByKey,
+} from "@/components/filter-accordion";
 import { ProjectsTableSkeleton } from "@/components/projects-table-skeleton";
 import { useToken } from "@/components/token-provider";
 import type {
@@ -80,6 +84,13 @@ type SortKey =
   | "integrations";
 type SortDir = "asc" | "desc";
 
+type ProjectGroup = {
+  key: string;
+  label: string;
+  avatarUrl?: string;
+  projects: ProjectWithMeta[];
+};
+
 function computeIntegrationCounts(
   projects: VercelProject[],
   integrations: VercelIntegration[],
@@ -115,15 +126,76 @@ export function ProjectsView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("created");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [filters, setFilters] = useState<Record<FilterKey, boolean>>({
-    zeroDeploys: false,
-    zeroEnvVars: false,
-    zeroIntegrations: false,
-    v0Prefix: false,
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    const s = searchParams.get("sort");
+    if (
+      s === "name" ||
+      s === "framework" ||
+      s === "created" ||
+      s === "deployments" ||
+      s === "envVars" ||
+      s === "integrations"
+    )
+      return s;
+    return "created";
   });
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortDir, setSortDir] = useState<SortDir>(() => {
+    const d = searchParams.get("dir");
+    if (d === "asc" || d === "desc") return d;
+    return "asc";
+  });
+  const [filters, setFilters] = useState<Record<FilterKey, boolean>>(() => {
+    const f = searchParams.get("f");
+    if (!f)
+      return {
+        zeroDeploys: false,
+        zeroEnvVars: false,
+        zeroIntegrations: false,
+        v0Prefix: false,
+      };
+    const active = new Set(f.split(","));
+    return {
+      zeroDeploys: active.has("zeroDeploys"),
+      zeroEnvVars: active.has("zeroEnvVars"),
+      zeroIntegrations: active.has("zeroIntegrations"),
+      v0Prefix: active.has("v0Prefix"),
+    };
+  });
+  const [filterOpen, setFilterOpen] = useState(() =>
+    Boolean(searchParams.get("f")),
+  );
+  const [groupBy, setGroupBy] = useState<GroupByKey | null>(() => {
+    const g = searchParams.get("g");
+    if (g === "year" || g === "creator" || g === "recentUser") return g;
+    return null;
+  });
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchRef = useRef(search);
+  searchRef.current = search;
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (searchRef.current) params.set("q", searchRef.current);
+
+    const activeFilters = Object.entries(filters)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+    if (activeFilters.length > 0) params.set("f", activeFilters.join(","));
+    if (groupBy) params.set("g", groupBy);
+    if (sortKey !== "created") params.set("sort", sortKey);
+    if (sortDir !== "asc") params.set("dir", sortDir);
+
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [filters, groupBy, sortKey, sortDir, pathname, router]);
 
   const opts = useMemo(
     () => (token ? { token, teamId: team?.id } : null),
@@ -310,6 +382,72 @@ export function ProjectsView() {
     return list;
   }, [projects, search, sortKey, sortDir, applyFilters]);
 
+  const groups = useMemo((): ProjectGroup[] => {
+    if (!groupBy) return [];
+
+    const map = new Map<string, ProjectGroup>();
+
+    for (const p of filtered) {
+      let key: string;
+      let label: string;
+      let avatarUrl: string | undefined;
+
+      switch (groupBy) {
+        case "year": {
+          const year = new Date(p.createdAt).getFullYear().toString();
+          key = year;
+          label = year;
+          break;
+        }
+        case "creator": {
+          const deployments = p.latestDeployments ?? [];
+          const oldest =
+            deployments.length > 0
+              ? deployments.reduce((a, b) =>
+                  a.createdAt < b.createdAt ? a : b,
+                )
+              : null;
+          const username = oldest?.creator.username ?? "Unknown";
+          key = username;
+          label = username;
+          avatarUrl =
+            username !== "Unknown"
+              ? `https://vercel.com/api/www/avatar?u=${username}&s=64`
+              : undefined;
+          break;
+        }
+        case "recentUser": {
+          const username =
+            p.latestDeployments?.[0]?.creator.username ?? "Unknown";
+          key = username;
+          label = username;
+          avatarUrl =
+            username !== "Unknown"
+              ? `https://vercel.com/api/www/avatar?u=${username}&s=64`
+              : undefined;
+          break;
+        }
+      }
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.projects.push(p);
+      } else {
+        map.set(key, { key, label, avatarUrl, projects: [p] });
+      }
+    }
+
+    const result = Array.from(map.values());
+
+    if (groupBy === "year") {
+      result.sort((a, b) => Number(b.key) - Number(a.key));
+    } else {
+      result.sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    return result;
+  }, [filtered, groupBy]);
+
   const toggleSort = useCallback(
     (key: SortKey) => {
       if (sortKey === key) {
@@ -389,6 +527,67 @@ export function ProjectsView() {
     setDeleting(false);
   }
 
+  const projectRow = (p: ProjectWithMeta) => (
+    <tr
+      key={p.id}
+      className="group border-border border-b transition-colors hover:bg-surface-hover"
+    >
+      <td className="px-5 py-2.5">
+        <input
+          type="checkbox"
+          checked={selected.has(p.id)}
+          onChange={() => toggleSelect(p.id)}
+          className="accent-white"
+        />
+      </td>
+      <td className="px-4 py-2.5">
+        <Link
+          href={`/vercel/projects/${p.id}`}
+          className="font-medium text-sm hover:underline"
+        >
+          {p.name}
+        </Link>
+      </td>
+      <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
+        {p.framework ?? "—"}
+      </td>
+      <td className="px-4 py-2.5 text-text-secondary text-xs">
+        {p.link ? (
+          <a
+            href={`https://github.com/${p.link.repo}`}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-text hover:underline"
+          >
+            {p.link.repo}
+          </a>
+        ) : (
+          "—"
+        )}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
+        {formatDate(p.createdAt)}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
+        {p.latestDeployments?.length ?? 0}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
+        {p.envVarCount === null ? (
+          <span className="text-text-tertiary">…</span>
+        ) : (
+          p.envVarCount
+        )}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
+        {p.integrationCount === null ? (
+          <span className="text-text-tertiary">…</span>
+        ) : (
+          p.integrationCount
+        )}
+      </td>
+    </tr>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* filter accordion */}
@@ -401,6 +600,8 @@ export function ProjectsView() {
         matchCount={matchCount}
         totalCount={filtered.length}
         envLoading={envLoading}
+        groupBy={groupBy}
+        onGroupByChange={setGroupBy}
       />
 
       {/* error */}
@@ -490,66 +691,34 @@ export function ProjectsView() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="group border-border border-b transition-colors hover:bg-surface-hover"
-                >
-                  <td className="px-5 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(p.id)}
-                      onChange={() => toggleSelect(p.id)}
-                      className="accent-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Link
-                      href={`/vercel/projects/${p.id}`}
-                      className="font-medium text-sm hover:underline"
-                    >
-                      {p.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
-                    {p.framework ?? "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-text-secondary text-xs">
-                    {p.link ? (
-                      <a
-                        href={`https://github.com/${p.link.repo}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-text hover:underline"
-                      >
-                        {p.link.repo}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
-                    {formatDate(p.createdAt)}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
-                    {p.latestDeployments?.length ?? 0}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
-                    {p.envVarCount === null ? (
-                      <span className="text-text-tertiary">…</span>
-                    ) : (
-                      p.envVarCount
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-text-secondary text-xs">
-                    {p.integrationCount === null ? (
-                      <span className="text-text-tertiary">…</span>
-                    ) : (
-                      p.integrationCount
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {groupBy
+                ? groups.map((group) => (
+                    <Fragment key={group.key}>
+                      <tr className="border-border border-b bg-surface">
+                        <td colSpan={8} className="px-5 py-2">
+                          <div className="flex items-center gap-2">
+                            {group.avatarUrl && (
+                              <img
+                                src={group.avatarUrl}
+                                alt=""
+                                width={16}
+                                height={16}
+                                className="rounded-full"
+                              />
+                            )}
+                            <span className="font-medium text-sm">
+                              {group.label}
+                            </span>
+                            <span className="font-mono text-xs text-text-tertiary">
+                              {group.projects.length}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {group.projects.map(projectRow)}
+                    </Fragment>
+                  ))
+                : filtered.map(projectRow)}
             </tbody>
           </table>
         )}

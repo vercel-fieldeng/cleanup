@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 
-import { CheckIcon, ChevronIcon, SettingsIcon } from "@/components/icons";
+import {
+  Check as CheckIcon,
+  ChevronRight as ChevronIcon,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { useToken } from "@/components/token-provider";
 
 function teamAvatarUrl(teamId: string, size = 64) {
@@ -93,6 +97,7 @@ export function TeamSwitcher() {
         )}
         <span className="max-w-[180px] truncate">{currentLabel}</span>
         <ChevronIcon
+          size={12}
           className={`text-text-tertiary transition-transform ${open ? "rotate-90" : "-rotate-90"}`}
         />
       </button>
@@ -115,7 +120,7 @@ export function TeamSwitcher() {
                 <TeamAvatar src={teamAvatarUrl(t.id)} name={t.name} size={20} />
                 <span className="truncate">{t.name}</span>
                 {team?.id === t.id && (
-                  <CheckIcon className="ml-auto shrink-0" />
+                  <CheckIcon size={14} className="ml-auto shrink-0" />
                 )}
               </button>
             ))}
@@ -126,7 +131,7 @@ export function TeamSwitcher() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
             >
-              <SettingsIcon />
+              <SettingsIcon size={14} />
               Manage
             </Link>
           </div>
